@@ -43,7 +43,7 @@ def QA_SU_save_stock_min(client=DATABASE, ui_log=None, ui_progress=None):
         from gm.api import set_token
         from gm.api import history
         # 请自行将掘金量化的 TOKEN 替换掉 GMTOKEN
-        set_token("9c5601171e97994686b47b5cbfe7b2fc8bb25b09")
+        set_token("2910608cfc4fabbb0bffd04a817f6c5387a51ef6")
     except:
         raise ModuleNotFoundError
 

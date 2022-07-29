@@ -2,7 +2,7 @@ from QUANTAXIS.QIFI.QifiAccount import QIFI_Account
 
 if __name__ == '__main__':
 
-    account =  QIFI_Account(username='testx', password='123456', model='BACKTEST', nodatabase=False, dbname='ck', 
+    account =  QIFI_Account(username='default', password='e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', model='BACKTEST', nodatabase=False, dbname='ck', 
         clickhouse_port=9000, clickhouse_user='default', clickhouse_password='')
 
     """

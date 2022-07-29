@@ -11,6 +11,8 @@ from QUANTAXIS.QAUtil.QAParameter import (DATABASE_TABLE, DATASOURCE,
                                           FREQUENCE, MARKET_TYPE,
                                           OUTPUT_FORMAT)
 
+from MongoHLOC import MongoHLOC as mongodata
+
 
 def get_yahoo_csv(code='000001'):
     data_path = Path(os.getcwd()) / 'datas/000001.SZ.csv'
@@ -20,18 +22,6 @@ def get_yahoo_csv(code='000001'):
     date_frame['openinterest'] = 0
 
     return date_frame
-
-
-def get_mongo_data(code='000001'):
-    df = QA_quotation_adv('000001', '2022-05-01', '2022-06-01', frequence=FREQUENCE.ONE_MIN,
-                          market=MARKET_TYPE.STOCK_CN, source=DATASOURCE.AUTO, output=OUTPUT_FORMAT.DATAFRAME)
-    df.reset_index(drop=False, inplace=True)
-    # df.drop(['code'], axis=1, inplace=True)
-    # df['datetime'] = pd.to_datetime(df['date'])  #分钟线只有datetime, 日线只有date
-    df.set_index('datetime', inplace=True)  #
-    df['openinterest'] = 0
-
-    return df
 
 
 def write_csv_to_compare_datas(first, second):
@@ -82,13 +72,16 @@ if __name__ == '__main__':
     cerebro.broker.setcash(50000)
     cerebro.broker.setcommission(0.0005)
 
-    yahoo = get_yahoo_csv()
-    mongo = get_mongo_data()
-    write_csv_to_compare_datas(yahoo, mongo)
+    code = '000001'
+    start = '2022-05-01'
+    end = '2022-06-01'
+    
+    mongo_min = mongodata().get_stock_data(code, start, end)
 
-    min_bar = bt.feeds.PandasData(dataname=mongo,
-                                  fromdate=datetime.datetime(2010, 5, 25),
-                                  todate=datetime.datetime(2022, 6, 1),
+    min_bar = bt.feeds.PandasData(dataname=mongo_min,
+                                  name=code,
+                                  fromdate=datetime.datetime.strptime(start, "%Y-%m-%d"),
+                                  todate=datetime.datetime.strptime(end, "%Y-%m-%d"),
                                   timeframe=bt.TimeFrame.Minutes
                                   )
 

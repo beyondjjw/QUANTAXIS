@@ -49,4 +49,4 @@ df = QA_quotation_adv('000011', '2019-12-01', '2022-07-01', frequence=FREQUENCE.
                            market=MARKET_TYPE.STOCK_CN, source=DATASOURCE.AUTO, output=OUTPUT_FORMAT.DATAFRAME)
 
 print(df.tail(20))
-df.to_csv('path.csv',index=False)
+df.to_csv('path.csv',index=True)

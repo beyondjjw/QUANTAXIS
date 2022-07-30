@@ -12,7 +12,7 @@ from QUANTAXIS.QAUtil.QAParameter import (DATABASE_TABLE, DATASOURCE,
                                           OUTPUT_FORMAT)
 
 from MongoHLOC import MongoHLOC as mongodata
-
+from backtraderex.DualThrustStrategy import DualTrustStrategy as  dtStrategy 
 
 def get_yahoo_csv(code='000001'):
     data_path = Path(os.getcwd()) / 'datas/000001.SZ.csv'
@@ -52,12 +52,12 @@ class TestStrategy(bt.Strategy):
         print("nextstart strategy")
 
     def next(self):
-        print("next strategy, a new bar")  #
+        # print("next strategy, a new bar")  #
         self.log("Close {}".format(self.data.close[0]))
 
     def log(self, txt):
         dt = self.datas[0].datetime.datetime(0)
-        print("{} {}".format(dt.isoformat(), txt))  #
+        # print("{} {}".format(dt.isoformat(), txt))  #
 
     def stop(self):
         print("stop strategy")
@@ -65,18 +65,22 @@ class TestStrategy(bt.Strategy):
 
     def notify_order(self, order):
         print("notify_order strategy")
-
+                    
 
 if __name__ == '__main__':
     cerebro = bt.Cerebro()
     cerebro.broker.setcash(50000)
     cerebro.broker.setcommission(0.0005)
 
-    code = '000001'
-    start = '2022-05-01'
-    end = '2022-06-01'
-    
-    mongo_min = mongodata().get_stock_data(code, start, end)
+    code = '000629'
+    start = '2022-04-01'
+    end = '2022-07-01'
+
+    try:
+        mongo_min = mongodata().get_data_by_one_minute(code, start, end)
+    except Exception as e:
+        print(str(e))
+        exit()
 
     min_bar = bt.feeds.PandasData(dataname=mongo_min,
                                   name=code,
@@ -90,7 +94,7 @@ if __name__ == '__main__':
     # 分钟线加进去，可以按照交易日投射， 投射后的日线可以用来产生信号
     cerebro.resampledata(min_bar, timeframe=bt.TimeFrame.Days)
 
-    cerebro.addstrategy(TestStrategy)
+    cerebro.addstrategy(dtStrategy)
     # cerebro.optstrategy(TestStrategy,
     #                     maperiod=range(10, 31))
 

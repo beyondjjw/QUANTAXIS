@@ -118,7 +118,7 @@ class CzscAdvancedTrader:
         else:
             return tab
 
-    def open_in_browser(self, width="1400px", height="580px"):
+    def open_in_browser(self, width="1900px", height="900px"):
         """直接在浏览器中打开分析结果"""
         file_html = os.path.join(home_path, "temp_czsc_advanced_trader.html")
         self.take_snapshot(file_html, width, height)

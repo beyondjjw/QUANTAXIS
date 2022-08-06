@@ -71,7 +71,7 @@ class MongoData():
         df['dt'] = df['datetime']
         df['trade_date'] = df['datetime']
         
-        print(df.head())
+        # print(df.head())
         df['avg_price'] = df['amount'] / df['volume']
         
         df.set_index('datetime', inplace=True)  #

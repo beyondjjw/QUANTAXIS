@@ -34,7 +34,7 @@ c30 = CZSC(f30)
 # 在浏览器中查看单标的单级别的分型、笔识别结果
 bars = dc.get_kline_by_day(code='000001', start='2015-01-01', end="2022-04-27")
 c = CZSC(bars)
-c.open_in_browser()
+c1.open_in_browser()
 
 # K线合成器，这是多级别联立分析的数据支撑。示例为从日线逐K合成周线、月线
 bg = BarGenerator(base_freq='1分钟', freqs=['5分钟', '30分钟', '日线', '周线'], max_count=50000)
@@ -45,7 +45,7 @@ for bar in f1:
 print("K线合成器中存下来的K线周期列表：", list(bg.bars.keys()))
 
 # 通过K线合成器获取周线
-bars_w = bg.bars['周线']
+bars_w = bg.bars['日线']
 
 
 # 定义一些需要观察的信号，可以是多级别同时计算

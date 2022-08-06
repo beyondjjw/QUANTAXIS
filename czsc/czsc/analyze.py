@@ -366,7 +366,7 @@ class CZSC:
                           title="{}-{}".format(self.symbol, self.freq.value))
         return chart
 
-    def open_in_browser(self, width: str = "1400px", height: str = '580px'):
+    def open_in_browser(self, width: str = "1080px", height: str = '960px'):
         """直接在浏览器中打开分析结果
 
         :param width: 图表宽度

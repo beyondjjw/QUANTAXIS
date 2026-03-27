@@ -1,8 +1,15 @@
 import asyncio
 import threading
 from functools import wraps
+import sys
 
-from janus import Queue as QA_AsyncQueue
+# Python 3.10+ 兼容性修复
+if sys.version_info >= (3, 10):
+    # 使用 asyncio.Queue 替代 janus
+    import asyncio
+    QA_AsyncQueue = asyncio.Queue
+else:
+    from janus import Queue as QA_AsyncQueue
 
 from QUANTAXIS.QAEngine.QAEvent import QA_Event
 from QUANTAXIS.QAUtil import QA_util_log_info, QA_util_random_with_topic, RUNNING_STATUS
@@ -10,7 +17,10 @@ from QUANTAXIS.QAUtil import QA_util_log_info, QA_util_random_with_topic, RUNNIN
 
 class QA_AsyncThread(threading.Thread):
     _loop = asyncio.new_event_loop()
-    _queue: QA_AsyncQueue = QA_AsyncQueue(loop=_loop)
+    if sys.version_info >= (3, 10):
+        _queue = QA_AsyncQueue()
+    else:
+        _queue = QA_AsyncQueue(loop=_loop)
 
     def __init__(self, name=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

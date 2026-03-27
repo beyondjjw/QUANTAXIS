@@ -13,13 +13,13 @@ from tornado.web import StaticFileHandler
 import tushare as ts
 from datetime import datetime, timedelta
 import czsc
-# from czsc import KlineAnalyze
+from czsc import KlineAnalyze
 
 # 首次使用，需要在这里设置你的 tushare token，用于获取数据；在同一台机器上，tushare token 只需要设置一次
 # 没有 token，到 https://tushare.pro/register?reg=7 注册获取
 # ts.set_token("your tushare token")
 
-# assert czsc.__version__ == "0.5.8", "当前 czsc 版本为 {}，请升级为 0.5.8 版本".format(czsc.__version__)
+assert czsc.__version__ == "0.5.8", "当前 czsc 版本为 {}，请升级为 0.5.8 版本".format(czsc.__version__)
 
 
 def _get_start_date(end_date, freq):
@@ -104,7 +104,7 @@ def get_stock_basic(ts_code=None):
 
 
 # 端口固定为 8005，不可以调整
-define('port', type=int, default=6665, help='服务器端口')
+define('port', type=int, default=8005, help='服务器端口')
 current_path = os.path.dirname(__file__)
 
 
@@ -147,7 +147,7 @@ class KlineHandler(BaseHandler):
         kline = get_kline(ts_code=ts_code, end_date=trade_date, freq=freq, asset=asset)
         kline.loc[:, "dt"] = pd.to_datetime(kline.dt)
 
-        ka = czsc.CZSC(kline)
+        ka = KlineAnalyze(kline, bi_mode="new", verbose=False, use_xd=True, max_count=5000)
         kline = ka.to_df(ma_params=(5, 20), use_macd=True, max_count=5000, mode='new')
         kline = kline.fillna("")
         kline.loc[:, "dt"] = kline.dt.apply(str)

@@ -12,6 +12,16 @@ import os
 valid_true = ['1', 'True', 'true', 'Y', 'y', 'yes', 'Yes', True]
 
 
+def use_python():
+    """是否使用 python 版本对象
+    
+    True 表示使用 python 版本对象
+    False 则使用 rust 版本对应的对象
+    """
+    v = os.environ.get('CZSC_USE_PYTHON', False)
+    return True if v in valid_true else False
+
+
 def get_verbose(verbose=None):
     """verbose - 是否输出执行过程的详细信息"""
     verbose = verbose if verbose else os.environ.get('czsc_verbose', None)
@@ -21,7 +31,7 @@ def get_verbose(verbose=None):
 
 def get_welcome():
     """welcome - 是否输出版本标识和缠中说禅博客摘记"""
-    v = True if os.environ.get('czsc_welcome', '1') in valid_true else False
+    v = True if os.environ.get('czsc_welcome', '0') in valid_true else False
     return v
 
 
@@ -39,16 +49,3 @@ def get_max_bi_num(v: int = None) -> int:
     """
     max_bi_num = v if v else os.environ.get('czsc_max_bi_num', 50)
     return int(float(max_bi_num))
-
-
-def get_bi_change_th(v: float = None) -> float:
-    """bi_change_th - 成笔需要超过benchmark的比例阈值
-
-    benchmark 是上一笔涨跌幅与最近五笔平均涨跌幅均值的最小值
-
-    设置成 -1，可以关闭根据当前笔涨跌幅达到benchmark的比例来确定笔
-    """
-    bi_change_th = v if v else os.environ.get('czsc_bi_change_th', '1')
-    bi_change_th = float(bi_change_th)
-    assert 2 >= bi_change_th >= 0.5 or bi_change_th == -1, f"czsc_bi_change_th not in [0.5, 2]"
-    return bi_change_th

@@ -1,11 +1,25 @@
-# -*- coding: utf-8 -*-
 """
-author: zengbin93
-email: zeng_bin8888@163.com
-create_dt: 2022/3/10 12:21
-describe: 人工智能模块，开发中，针对一些业内标准问题的研究流程
+AI 选股模块
+集成机器学习和缠论分析
 """
-from . import utils
-from .utils import get_datetime_spans
+from .sk import evaluate_estimator, train_estimator
+from .selector import AISelector, FactorAISelector, EnsembleSelector
+from .trading_signals import ChanSignalAI, AIStockPicker, ChanTradingSignals
 
+__all__ = [
+    # 模型训练
+    'evaluate_estimator',
+    'train_estimator',
+    # 选股器
+    'AISelector',
+    'FactorAISelector', 
+    'EnsembleSelector',
+    # 缠论信号
+    'ChanSignalAI',
+    'AIStockPicker',
+    'ChanTradingSignals',
+]
 
+# 版本信息
+__version__ = "1.0.0"
+__author__ = "beyondjjw"

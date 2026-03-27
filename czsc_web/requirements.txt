@@ -1,8 +1,27 @@
-tqsdk
-flask
-tushare
-requests
-pandas
-tornado
-czsc
-gm
+# czsc_web 模块依赖
+
+# 基础依赖
+tornado>=6.1
+pandas>=1.1.5
+requests>=2.25.0
+
+# 缠论库
+czsc>=0.5.8
+
+# 数据源 (按需安装)
+tushare>=1.2.0      # Tushare Pro
+jqdata              # 聚宽 (需要申请)
+gm                  # 掘金 (需要申请)
+tqsdk               # 天勤 (需要申请)
+pytdx>=1.67         # 通达信 (本地文件/实时行情)
+
+# 你的定制数据源依赖
+pymongo>=3.11.0     # MongoDB
+motor>=2.2           # 异步MongoDB
+
+# Web 可选
+flask>=0.12.2
+
+# 异步
+gevent-websocket>=0.10.1
+apscheduler>=3.3.1

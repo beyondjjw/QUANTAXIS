@@ -258,8 +258,55 @@ def analyze_buy_sell_signals(bars: pd.DataFrame,
                     'reason': '笔背驰+MACD底背离'
                 }
     
-    # 7. 卖出信号 (上涨趋势)
+    # 7. 上涨趋势中的回调买入 (二买/三买)
     elif result['direction'] == '上涨' or result['trend'] == '上涨趋势':
+        # 上涨趋势中的回调不破前低 = 二买
+        if len(bi_list) >= 2:
+            if bi_list[-1].direction == 'down' and bi_list[-1].low >= bi_list[-2].low * 0.99:
+                result['buy'] = {
+                    'type': '二买',
+                    'confidence': 0.8,
+                    'position': 0.5,
+                    'reason': '上涨回调不破前低(二买)'
+                }
+        
+        # 底分型 (小幅反弹)
+        elif len(bars) >= 3:
+            mid_low = bars['low'].iloc[1]
+            if mid_low < bars['low'].iloc[0] and mid_low < bars['low'].iloc[2]:
+                result['buy'] = {
+                    'type': '底分型',
+                    'confidence': 0.5,
+                    'position': 0.3,
+                    'reason': '上涨中底分型反弹'
+                }
+        
+        # MACD底背离 (回调中金叉)
+        if use_macd:
+            macd = result['macd']
+            if macd and macd['macd'] > 0 and macd['dea'] > 0:
+                result['buy'] = {
+                    'type': 'MACD金叉',
+                    'confidence': 0.6,
+                    'position': 0.4,
+                    'reason': 'MACD水上金叉'
+                }
+        
+        # 三买: 突破中枢后回调不破ZG
+        if use_zhongshu and result['zhongshu']:
+            current_price = bars['close'].iloc[-1]
+            zs = identify_zhongshu(bars)
+            if zs and current_price > zs.zg:
+                if current_price >= zs.zg * 0.99:
+                    result['buy'] = {
+                        'type': '三买',
+                        'confidence': 0.75,
+                        'position': 0.6,
+                        'reason': '突破中枢后回调不破ZG'
+                    }
+    
+    # 8. 卖出信号 (上涨趋势)
+    if result['direction'] == '上涨' or result['trend'] == '上涨趋势':
         # 顶分型
         if len(bars) >= 3:
             mid_high = bars['high'].iloc[1]
@@ -362,6 +409,26 @@ class ChanIntegratedStrategy:
         reason = ''
         position = 0
         
+        # ===== 仓位控制 (根据趋势和月线) =====
+        trend = result.get('trend', '未知')
+        
+        # 获取月线方向
+        month_dir = self.get_month_direction() if self.monthly_data else '未知'
+        
+        # 基础仓位
+        if month_dir == '牛市':
+            base_position = 0.8
+        elif month_dir == '熊市':
+            base_position = 0.2
+        else:
+            base_position = 0.5
+        
+        # 根据趋势调整
+        if trend == '上涨趋势':
+            base_position = min(base_position, 0.8)
+        elif trend == '下跌趋势':
+            base_position = min(base_position, 0.3)
+        
         # 卖出优先 (持仓中)
         if self.position > 0:
             if result['sell']:
@@ -381,9 +448,12 @@ class ChanIntegratedStrategy:
         
         # 买入 (空仓中)
         elif result['buy']:
+            # 使用信号中的仓位，但不超过基础仓位
+            signal_position = result['buy'].get('position', 0.5)
+            position = min(signal_position, base_position)
+            
             action = 'buy'
             reason = result['buy']['reason']
-            position = result['buy'].get('position', 0.5)
         
         return {
             'action': action,

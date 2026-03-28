@@ -384,8 +384,15 @@ class ChanIntegratedStrategy:
         if self.monthly_data is None or len(self.monthly_data) < 60:
             return '未知'
         
-        ma12 = self.monthly_data['close'].rolling(12).mean().iloc[-1]
-        ma60 = self.monthly_data['close'].rolling(60).mean().iloc[-1]
+        close_series = self.monthly_data['close']
+        if not isinstance(close_series, pd.Series) or len(close_series) < 12:
+            return '未知'
+        
+        ma12 = close_series.rolling(12).mean().iloc[-1]
+        ma60 = close_series.rolling(60).mean().iloc[-1]
+        
+        if pd.isna(ma12) or pd.isna(ma60):
+            return '未知'
         
         return '牛市' if ma12 > ma60 else '熊市'
     
@@ -413,7 +420,8 @@ class ChanIntegratedStrategy:
         trend = result.get('trend', '未知')
         
         # 获取月线方向
-        month_dir = self.get_month_direction() if self.monthly_data else '未知'
+        has_monthly = isinstance(self.monthly_data, pd.DataFrame) and len(self.monthly_data) > 0
+        month_dir = self.get_month_direction() if has_monthly else '未知'
         
         # 基础仓位
         if month_dir == '牛市':

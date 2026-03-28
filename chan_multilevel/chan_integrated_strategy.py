@@ -176,24 +176,24 @@ def analyze_buy_sell_signals(bars: pd.DataFrame,
         'zhongshu': None
     }
     
-    # 1. 笔识别
-    bi_list = identify_bi(bars)
-    if not bi_list:
+    if len(bars) < 5:
         return result
     
-    current_bi = bi_list[-1]
-    result['direction'] = '上涨' if current_bi.direction == 'up' else '下跌'
-    
-    # 2. 趋势判断
-    if len(bars) >= 60:
+    # 1. 趋势判断 (优先)
+    if len(bars) >= 20:
         ma20 = bars['close'].rolling(20).mean().iloc[-1]
-        ma60 = bars['close'].rolling(60).mean().iloc[-1]
+        ma60 = bars['close'].rolling(60).mean().iloc[-1] if len(bars) >= 60 else ma20
         if ma20 > ma60:
             result['trend'] = '上涨趋势'
+            result['direction'] = '上涨'
         elif ma20 < ma60:
             result['trend'] = '下跌趋势'
+            result['direction'] = '下跌'
         else:
             result['trend'] = '盘整'
+    
+    # 2. 笔识别
+    bi_list = identify_bi(bars)
     
     # 3. 中枢
     if use_zhongshu:
@@ -204,77 +204,99 @@ def analyze_buy_sell_signals(bars: pd.DataFrame,
     if use_macd:
         result['macd'] = calc_macd(bars)
     
-    # 5. 笔背驰
+    # 5. 笔背驰检测
     bi_beichi = None
     if len(bi_list) >= 2:
-        prev_bi = bi_list[-2]
-        if current_bi.direction == prev_bi.direction:
-            if current_bi.force < prev_bi.force * 0.8:
-                bi_beichi = {'type': f"{result['direction']}背驰", 'weaken': (prev_bi.force - current_bi.force) / prev_bi.force}
+        current = bi_list[-1]
+        prev = bi_list[-2]
+        if current.direction == prev.direction:
+            if current.force < prev.force * 0.8:
+                bi_beichi = {'type': f"{result['direction']}背驰", 'weaken': (prev.force - current.force) / prev.force}
     
-    # 6. 买入信号 (下跌趋势中的买入机会)
-    if current_bi.direction == 'down':
+    # 6. 买入信号 (下跌趋势 or 底背离)
+    if result['direction'] == '下跌' or result['trend'] == '下跌趋势':
         # 底分型
-        if len(bars) >= 3 and bars['low'].iloc[1] < bars['low'].iloc[0] and bars['low'].iloc[1] < bars['low'].iloc[2]:
-            reason = '30分底分型'
-            confidence = 0.6
-            position = 0.3
+        if len(bars) >= 3:
+            mid_low = bars['low'].iloc[1]
+            if mid_low < bars['low'].iloc[0] and mid_low < bars['low'].iloc[2]:
+                result['buy'] = {
+                    'type': '底分型',
+                    'confidence': 0.6,
+                    'position': 0.3,
+                    'reason': '底分型买入'
+                }
         
-        # 二买: 回调不破前低
-        if len(bi_list) >= 2 and current_bi.low >= bi_list[-2].low * 0.99:
-            reason = '回调不破前低(二买)'
-            confidence = 0.8
-            position = 0.5
+        # 二买: 连续两笔下跌，第二笔低点不低于第一笔
+        if len(bi_list) >= 2:
+            if bi_list[-1].direction == 'down' and bi_list[-1].low >= bi_list[-2].low * 0.99:
+                result['buy'] = {
+                    'type': '二买',
+                    'confidence': 0.8,
+                    'position': 0.5,
+                    'reason': '回调不破前低(二买)'
+                }
         
-        # 底背驰 + MACD底背离 = 强买入
+        # MACD底背离
+        if use_macd:
+            macd_div = check_macd_divergence(bars, 'down')
+            if macd_div:
+                result['buy'] = {
+                    'type': 'MACD底背离',
+                    'confidence': 0.7,
+                    'position': 0.4,
+                    'reason': 'MACD底背离'
+                }
+        
+        # 双重背离
         if bi_beichi and use_macd:
             macd_div = check_macd_divergence(bars, 'down')
             if macd_div:
-                reason = '笔背驰+MACD底背离(强买)'
-                confidence = 0.95
-                position = 0.8
-            else:
-                reason = '笔背驰(可能见底)'
-                confidence = 0.7
-                position = 0.4
-        
-        # MACD底背离单独
-        elif use_macd:
-            macd_div = check_macd_divergence(bars, 'down')
-            if macd_div:
-                reason = 'MACD底背离'
-                confidence = 0.7
-                position = 0.4
-        
-        if 'reason' in locals():
-            result['buy'] = {'type': reason.split('(')[0], 'confidence': confidence, 'position': position, 'reason': reason}
+                result['buy'] = {
+                    'type': '双重底背离',
+                    'confidence': 0.95,
+                    'position': 0.8,
+                    'reason': '笔背驰+MACD底背离'
+                }
     
-    # 7. 卖出信号 (上涨趋势中的卖出机会)
-    else:  # up
+    # 7. 卖出信号 (上涨趋势)
+    elif result['direction'] == '上涨' or result['trend'] == '上涨趋势':
         # 顶分型
-        if len(bars) >= 3 and bars['high'].iloc[1] > bars['high'].iloc[0] and bars['high'].iloc[1] > bars['high'].iloc[2]:
-            reason = '顶分型'
-            confidence = 0.6
+        if len(bars) >= 3:
+            mid_high = bars['high'].iloc[1]
+            if mid_high > bars['high'].iloc[0] and mid_high > bars['high'].iloc[2]:
+                result['sell'] = {
+                    'type': '顶分型',
+                    'confidence': 0.6,
+                    'reason': '顶分型卖出'
+                }
         
-        # 顶背驰 + MACD顶背离 = 强卖出
+        # 背驰
+        if bi_beichi:
+            result['sell'] = {
+                'type': '笔背驰',
+                'confidence': 0.7,
+                'reason': '笔背驰可能见顶'
+            }
+        
+        # MACD顶背离
+        if use_macd:
+            macd_div = check_macd_divergence(bars, 'up')
+            if macd_div:
+                result['sell'] = {
+                    'type': 'MACD顶背离',
+                    'confidence': 0.7,
+                    'reason': 'MACD顶背离'
+                }
+        
+        # 双重背离
         if bi_beichi and use_macd:
             macd_div = check_macd_divergence(bars, 'up')
             if macd_div:
-                reason = '笔背驰+MACD顶背离(强卖)'
-                confidence = 0.95
-            else:
-                reason = '笔背驰(可能见顶)'
-                confidence = 0.7
-        
-        # MACD顶背离单独
-        elif use_macd:
-            macd_div = check_macd_divergence(bars, 'up')
-            if macd_div:
-                reason = 'MACD顶背离'
-                confidence = 0.7
-        
-        if 'reason' in locals():
-            result['sell'] = {'type': reason.split('(')[0], 'confidence': confidence, 'reason': reason}
+                result['sell'] = {
+                    'type': '双重顶背离',
+                    'confidence': 0.95,
+                    'reason': '笔背驰+MACD顶背离'
+                }
     
     return result
 
